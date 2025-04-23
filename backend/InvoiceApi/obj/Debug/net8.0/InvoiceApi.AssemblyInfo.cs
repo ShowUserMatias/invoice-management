@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("InvoiceApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+88c31016c6c0d6147fd481de2be36696ec0c7343")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ca02d1ffe76510b153c9f048215debbcf9ebc880")]
 [assembly: System.Reflection.AssemblyProductAttribute("InvoiceApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("InvoiceApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -22,28 +22,51 @@ namespace InvoiceApi.Services
             }
 
             var jsonContent = await File.ReadAllTextAsync(jsonFilePath);
-            var jsonData = JsonSerializer.Deserialize<JsonStructure>(jsonContent);
+
+            Console.WriteLine($"✅ JSON leído correctamente. Primeros 300 caracteres:\n{jsonContent.Substring(0, Math.Min(300, jsonContent.Length))}");
+
+            var jsonData = JsonSerializer.Deserialize<JsonStructure>(
+                jsonContent,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+            );
+
+            if (jsonData?.Invoices == null || jsonData.Invoices.Count == 0)
+            {
+                Console.WriteLine("El archivo se leyó, pero no se encontraron facturas dentro de 'Invoices'.");
+                return "El archivo JSON no tiene datos válidos.";
+            }
+            else
+            {
+                Console.WriteLine($"Se encontraron {jsonData.Invoices.Count} facturas en el JSON.");
+            }            
 
             if (jsonData?.Invoices == null)
             {
                 return "El archivo JSON no tiene datos válidos.";
             }
 
+            int insertedCount = 0;
+            int skippedCount = 0;
+
             foreach (var invoiceJson in jsonData.Invoices)
             {
-                // Validar invoice_number único
                 bool exists = await _context.Invoices.AnyAsync(i => i.InvoiceNumber == invoiceJson.InvoiceNumber);
                 if (exists)
                 {
-                    continue; // Saltar si ya existe
+                    Console.WriteLine($"Factura {invoiceJson.InvoiceNumber} ya existe. Saltando...");
+                    skippedCount++;
+                    continue;
                 }
 
-                // Validar suma de subtotales
                 decimal subtotalSum = invoiceJson.InvoiceDetail.Sum(d => d.Subtotal);
                 if (subtotalSum != invoiceJson.TotalAmount)
                 {
-                    continue; // Saltar si hay incoherencia
+                    Console.WriteLine($"Factura {invoiceJson.InvoiceNumber} inconsistente: suma de subtotales {subtotalSum} != total {invoiceJson.TotalAmount}");
+                    skippedCount++;
+                    continue;
                 }
+
+                Console.WriteLine($"Factura {invoiceJson.InvoiceNumber} será insertada.");
 
                 // Mapear Customer
                 var customer = new Customer
@@ -108,6 +131,7 @@ namespace InvoiceApi.Services
                     TotalAmount = invoiceJson.TotalAmount,
                     PaymentDueDate = invoiceJson.PaymentDueDate,
                     PaymentStatus = paymentStatus,
+                    InvoiceStatus = invoiceStatus,
                     Customer = customer,
                     InvoiceDetails = details,
                     InvoiceCreditNotes = creditNotes,
@@ -115,10 +139,14 @@ namespace InvoiceApi.Services
                 };
 
                 await _context.Invoices.AddAsync(invoice);
+                insertedCount++;
             }
 
             await _context.SaveChangesAsync();
-            return "Proceso de carga finalizado.";
+            Console.WriteLine($"Se insertaron {insertedCount} facturas correctamente.");
+            Console.WriteLine($"e omitieron {skippedCount} facturas por duplicadas o inconsistentes.");
+
+            return $"Proceso de carga finalizado. Insertadas: {insertedCount}, Omitidas: {skippedCount}.";
         }
     }
 
