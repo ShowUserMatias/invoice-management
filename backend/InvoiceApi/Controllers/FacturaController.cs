@@ -52,6 +52,7 @@ namespace InvoiceApi.Controllers
                 .Include(i => i.InvoicePayment)
                 .AsQueryable();
 
+            // Filtro por número de factura
             if (invoiceNumber.HasValue)
             {
                 query = query.Where(i => i.InvoiceNumber == invoiceNumber.Value);
@@ -59,15 +60,22 @@ namespace InvoiceApi.Controllers
 
             if (!string.IsNullOrWhiteSpace(invoiceStatus))
             {
-                query = query.Where(i => i.InvoiceStatus.Equals(invoiceStatus, StringComparison.OrdinalIgnoreCase));
+                var normalizedInvoiceStatus = invoiceStatus.ToLower();
+                query = query.Where(i => i.InvoiceStatus.ToLower() == normalizedInvoiceStatus);
             }
-
+            
             if (!string.IsNullOrWhiteSpace(paymentStatus))
             {
-                query = query.Where(i => i.PaymentStatus.Equals(paymentStatus, StringComparison.OrdinalIgnoreCase));
+                var normalizedPaymentStatus = paymentStatus.ToLower();
+                query = query.Where(i => i.PaymentStatus.ToLower() == normalizedPaymentStatus);
             }
 
             var results = await query.ToListAsync();
+
+            if (results.Count == 0)
+            {
+                return NotFound(new { message = "No se encontraron facturas con los criterios especificados." });
+            }
 
             return Ok(results);
         }
