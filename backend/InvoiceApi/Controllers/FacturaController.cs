@@ -1,5 +1,7 @@
-using InvoiceApi.Services;
+using InvoiceApi.Data;
+using InvoiceApi.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace InvoiceApi.Controllers
 {
@@ -8,18 +10,19 @@ namespace InvoiceApi.Controllers
     public class FacturaController : ControllerBase
     {
         private readonly JsonLoaderService _jsonLoaderService;
+        private readonly AppDbContext _context;
         private readonly ILogger<FacturaController> _logger;
 
-        public FacturaController(JsonLoaderService jsonLoaderService, ILogger<FacturaController> logger)
+        public FacturaController(JsonLoaderService jsonLoaderService, AppDbContext context, ILogger<FacturaController> logger)
         {
             _jsonLoaderService = jsonLoaderService;
+            _context = context;
             _logger = logger;
         }
 
         /// <summary>
         /// Cargar facturas desde el archivo JSON.
         /// </summary>
-        /// <returns>Mensaje de resultado.</returns>
         [HttpPost("cargar-json")]
         public async Task<IActionResult> CargarFacturas()
         {
@@ -30,6 +33,42 @@ namespace InvoiceApi.Controllers
             _logger.LogInformation("Resultado de la carga: {Message}", resultMessage);
 
             return Ok(new { message = resultMessage });
+        }
+
+        /// <summary>
+        /// Buscar facturas por número, estado de factura y estado de pago.
+        /// </summary>
+        [HttpGet("buscar")]
+        public async Task<IActionResult> BuscarFacturas(
+            [FromQuery] int? invoiceNumber,
+            [FromQuery] string? invoiceStatus,
+            [FromQuery] string? paymentStatus)
+        {
+            var query = _context.Invoices
+                .Include(i => i.Customer)
+                .Include(i => i.InvoiceDetails)
+                .Include(i => i.InvoiceCreditNotes)
+                .Include(i => i.InvoicePayment)
+                .AsQueryable();
+
+            if (invoiceNumber.HasValue)
+            {
+                query = query.Where(i => i.InvoiceNumber == invoiceNumber.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(invoiceStatus))
+            {
+                query = query.Where(i => EF.Functions.Like(i.PaymentStatus, invoiceStatus));
+            }
+
+            if (!string.IsNullOrWhiteSpace(paymentStatus))
+            {
+                query = query.Where(i => EF.Functions.Like(i.PaymentStatus, paymentStatus));
+            }
+
+            var results = await query.ToListAsync();
+
+            return Ok(results);
         }
     }
 }
