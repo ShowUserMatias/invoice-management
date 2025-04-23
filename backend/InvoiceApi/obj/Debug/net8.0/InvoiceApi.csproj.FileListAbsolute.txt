@@ -158,3 +158,4 @@ C:\Users\PM.SA\OneDrive\Documentos\Ejercicio Técnico\invoice-management\backend
 C:\Users\PM.SA\OneDrive\Documentos\Ejercicio Técnico\invoice-management\backend\InvoiceApi\obj\Debug\net8.0\InvoiceApi.pdb
 C:\Users\PM.SA\OneDrive\Documentos\Ejercicio Técnico\invoice-management\backend\InvoiceApi\obj\Debug\net8.0\InvoiceApi.genruntimeconfig.cache
 C:\Users\PM.SA\OneDrive\Documentos\Ejercicio Técnico\invoice-management\backend\InvoiceApi\obj\Debug\net8.0\ref\InvoiceApi.dll
+C:\Users\PM.SA\OneDrive\Documentos\Ejercicio Técnico\invoice-management\backend\InvoiceApi\bin\Debug\net8.0\DataFiles\bd_exam.json
