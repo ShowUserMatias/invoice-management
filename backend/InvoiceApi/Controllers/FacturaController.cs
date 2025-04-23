@@ -2,6 +2,7 @@ using InvoiceApi.Data;
 using InvoiceApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using InvoiceApi.Services;
 
 namespace InvoiceApi.Controllers
 {

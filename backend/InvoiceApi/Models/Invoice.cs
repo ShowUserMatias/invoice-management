@@ -8,6 +8,7 @@ namespace InvoiceApi.Models
         public decimal TotalAmount { get; set; }
         public DateTime PaymentDueDate { get; set; }
         public string PaymentStatus { get; set; } = string.Empty;
+        public string InvoiceStatus { get; set; } = string.Empty;
 
         // Relaciones
         public Customer Customer { get; set; } = null!;
