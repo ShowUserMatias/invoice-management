@@ -2,6 +2,7 @@ using InvoiceApi.Data;
 using InvoiceApi.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace InvoiceApi.Services
 {
@@ -22,8 +23,7 @@ namespace InvoiceApi.Services
             }
 
             var jsonContent = await File.ReadAllTextAsync(jsonFilePath);
-
-            Console.WriteLine($"✅ JSON leído correctamente. Primeros 300 caracteres:\n{jsonContent.Substring(0, Math.Min(300, jsonContent.Length))}");
+            Console.WriteLine($"JSON leído correctamente. Primeros 300 caracteres:\n{jsonContent.Substring(0, Math.Min(300, jsonContent.Length))}");
 
             var jsonData = JsonSerializer.Deserialize<JsonStructure>(
                 jsonContent,
@@ -32,28 +32,23 @@ namespace InvoiceApi.Services
 
             if (jsonData?.Invoices == null || jsonData.Invoices.Count == 0)
             {
-                Console.WriteLine("El archivo se leyó, pero no se encontraron facturas dentro de 'Invoices'.");
                 return "El archivo JSON no tiene datos válidos.";
             }
-            else
-            {
-                Console.WriteLine($"Se encontraron {jsonData.Invoices.Count} facturas en el JSON.");
-            }            
 
-            if (jsonData?.Invoices == null)
-            {
-                return "El archivo JSON no tiene datos válidos.";
-            }
+            Console.WriteLine($"Se encontraron {jsonData.Invoices.Count} facturas en el JSON.");
 
             int insertedCount = 0;
             int skippedCount = 0;
+            List<string> skipReasons = new();
 
             foreach (var invoiceJson in jsonData.Invoices)
             {
                 bool exists = await _context.Invoices.AnyAsync(i => i.InvoiceNumber == invoiceJson.InvoiceNumber);
                 if (exists)
                 {
-                    Console.WriteLine($"Factura {invoiceJson.InvoiceNumber} ya existe. Saltando...");
+                    string reason = $"Factura {invoiceJson.InvoiceNumber} omitida: ya existe en la base de datos.";
+                    Console.WriteLine(reason);
+                    skipReasons.Add(reason);
                     skippedCount++;
                     continue;
                 }
@@ -61,14 +56,15 @@ namespace InvoiceApi.Services
                 decimal subtotalSum = invoiceJson.InvoiceDetail.Sum(d => d.Subtotal);
                 if (subtotalSum != invoiceJson.TotalAmount)
                 {
-                    Console.WriteLine($"Factura {invoiceJson.InvoiceNumber} inconsistente: suma de subtotales {subtotalSum} != total {invoiceJson.TotalAmount}");
+                    string reason = $"Factura {invoiceJson.InvoiceNumber} omitida: suma de subtotales ({subtotalSum}) no coincide con el total ({invoiceJson.TotalAmount}).";
+                    Console.WriteLine(reason);
+                    skipReasons.Add(reason);
                     skippedCount++;
                     continue;
                 }
 
                 Console.WriteLine($"Factura {invoiceJson.InvoiceNumber} será insertada.");
 
-                // Mapear Customer
                 var customer = new Customer
                 {
                     CustomerRun = invoiceJson.Customer.CustomerRun,
@@ -76,7 +72,6 @@ namespace InvoiceApi.Services
                     CustomerEmail = invoiceJson.Customer.CustomerEmail
                 };
 
-                // Mapear detalles
                 var details = invoiceJson.InvoiceDetail.Select(d => new InvoiceDetail
                 {
                     ProductName = d.ProductName,
@@ -85,7 +80,6 @@ namespace InvoiceApi.Services
                     Subtotal = d.Subtotal
                 }).ToList();
 
-                // Mapear notas de crédito
                 var creditNotes = invoiceJson.InvoiceCreditNote.Select(nc => new InvoiceCreditNote
                 {
                     CreditNoteNumber = nc.CreditNoteNumber,
@@ -93,37 +87,16 @@ namespace InvoiceApi.Services
                     CreditNoteAmount = nc.CreditNoteAmount
                 }).ToList();
 
-                // Mapear pago
                 var payment = new InvoicePayment
                 {
                     PaymentMethod = invoiceJson.InvoicePayment.PaymentMethod,
                     PaymentDate = invoiceJson.InvoicePayment.PaymentDate
                 };
 
-                // Calcular estado de factura
                 decimal totalNc = creditNotes.Sum(nc => nc.CreditNoteAmount);
-                string invoiceStatus = "Issued";
-                if (totalNc == invoiceJson.TotalAmount)
-                {
-                    invoiceStatus = "Cancelled";
-                }
-                else if (totalNc > 0 && totalNc < invoiceJson.TotalAmount)
-                {
-                    invoiceStatus = "Partial";
-                }
+                string invoiceStatus = totalNc == invoiceJson.TotalAmount ? "Cancelled" : totalNc > 0 ? "Partial" : "Issued";
+                string paymentStatus = payment.PaymentDate.HasValue ? "Paid" : DateTime.Now.Date > invoiceJson.PaymentDueDate ? "Overdue" : "Pending";
 
-                // Calcular estado de pago
-                string paymentStatus = "Pending";
-                if (payment.PaymentDate.HasValue)
-                {
-                    paymentStatus = "Paid";
-                }
-                else if (DateTime.Now.Date > invoiceJson.PaymentDueDate)
-                {
-                    paymentStatus = "Overdue";
-                }
-
-                // Crear entidad Invoice
                 var invoice = new Invoice
                 {
                     InvoiceNumber = invoiceJson.InvoiceNumber,
@@ -144,9 +117,15 @@ namespace InvoiceApi.Services
 
             await _context.SaveChangesAsync();
             Console.WriteLine($"Se insertaron {insertedCount} facturas correctamente.");
-            Console.WriteLine($"e omitieron {skippedCount} facturas por duplicadas o inconsistentes.");
+            Console.WriteLine($"Se omitieron {skippedCount} facturas por duplicadas o inconsistentes.");
 
-            return $"Proceso de carga finalizado. Insertadas: {insertedCount}, Omitidas: {skippedCount}.";
+            string resultMessage = $"Proceso de carga finalizado. Insertadas: {insertedCount}, Omitidas: {skippedCount}.\n";
+            if (skipReasons.Count > 0)
+            {
+                resultMessage += "Motivos de omisión:\n" + string.Join("\n", skipReasons);
+            }
+
+            return resultMessage;
         }
     }
 
@@ -158,42 +137,82 @@ namespace InvoiceApi.Services
 
     public class InvoiceJson
     {
+        [JsonPropertyName("invoice_number")]
         public int InvoiceNumber { get; set; }
+
+        [JsonPropertyName("invoice_date")]
         public DateTime InvoiceDate { get; set; }
+
+        [JsonPropertyName("total_amount")]
         public decimal TotalAmount { get; set; }
+
+        [JsonPropertyName("payment_due_date")]
         public DateTime PaymentDueDate { get; set; }
+
+        [JsonPropertyName("payment_status")]
         public string PaymentStatus { get; set; } = string.Empty;
+
+        [JsonPropertyName("invoice_status")]
+        public string InvoiceStatus { get; set; } = string.Empty;
+
+        [JsonPropertyName("invoice_detail")]
         public List<InvoiceDetailJson> InvoiceDetail { get; set; } = new();
+
+        [JsonPropertyName("invoice_payment")]
         public InvoicePaymentJson InvoicePayment { get; set; } = new();
+
+        [JsonPropertyName("invoice_credit_note")]
         public List<InvoiceCreditNoteJson> InvoiceCreditNote { get; set; } = new();
+
+        [JsonPropertyName("customer")]
         public CustomerJson Customer { get; set; } = new();
     }
 
     public class InvoiceDetailJson
     {
+        [JsonPropertyName("product_name")]
         public string ProductName { get; set; } = string.Empty;
+
+        [JsonPropertyName("unit_price")]
         public decimal UnitPrice { get; set; }
+
+        [JsonPropertyName("quantity")]
         public int Quantity { get; set; }
+
+        [JsonPropertyName("subtotal")]
         public decimal Subtotal { get; set; }
     }
 
     public class InvoiceCreditNoteJson
     {
+        [JsonPropertyName("credit_note_number")]
         public int CreditNoteNumber { get; set; }
+
+        [JsonPropertyName("credit_note_date")]
         public DateTime CreditNoteDate { get; set; }
+
+        [JsonPropertyName("credit_note_amount")]
         public decimal CreditNoteAmount { get; set; }
     }
 
     public class InvoicePaymentJson
     {
+        [JsonPropertyName("payment_method")]
         public string? PaymentMethod { get; set; }
+
+        [JsonPropertyName("payment_date")]
         public DateTime? PaymentDate { get; set; }
     }
 
     public class CustomerJson
     {
+        [JsonPropertyName("customer_run")]
         public string CustomerRun { get; set; } = string.Empty;
+
+        [JsonPropertyName("customer_name")]
         public string CustomerName { get; set; } = string.Empty;
+
+        [JsonPropertyName("customer_email")]
         public string CustomerEmail { get; set; } = string.Empty;
     }
 }

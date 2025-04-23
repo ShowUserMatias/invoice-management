@@ -59,12 +59,12 @@ namespace InvoiceApi.Controllers
 
             if (!string.IsNullOrWhiteSpace(invoiceStatus))
             {
-                query = query.Where(i => EF.Functions.Like(i.PaymentStatus, invoiceStatus));
+                query = query.Where(i => i.InvoiceStatus.Equals(invoiceStatus, StringComparison.OrdinalIgnoreCase));
             }
 
             if (!string.IsNullOrWhiteSpace(paymentStatus))
             {
-                query = query.Where(i => EF.Functions.Like(i.PaymentStatus, paymentStatus));
+                query = query.Where(i => i.PaymentStatus.Equals(paymentStatus, StringComparison.OrdinalIgnoreCase));
             }
 
             var results = await query.ToListAsync();
