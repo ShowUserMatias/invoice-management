@@ -11,12 +11,14 @@ namespace InvoiceApi.Controllers
     public class FacturaController : ControllerBase
     {
         private readonly JsonLoaderService _jsonLoaderService;
+        private readonly InvoiceService _invoiceService;
         private readonly AppDbContext _context;
         private readonly ILogger<FacturaController> _logger;
 
-        public FacturaController(JsonLoaderService jsonLoaderService, AppDbContext context, ILogger<FacturaController> logger)
+        public FacturaController(JsonLoaderService jsonLoaderService, InvoiceService invoiceService ,AppDbContext context, ILogger<FacturaController> logger)
         {
             _jsonLoaderService = jsonLoaderService;
+            _invoiceService = invoiceService;
             _context = context;
             _logger = logger;
         }
@@ -79,5 +81,43 @@ namespace InvoiceApi.Controllers
 
             return Ok(results);
         }
+
+        /// <summary>
+        /// Agregar una Nota de Crédito a una factura.
+        /// </summary>
+        [HttpPost("agregar-nc")]
+        public async Task<IActionResult> AgregarNotaDeCredito([FromBody] NotaCreditoRequest request)
+        {
+            if (request.CreditNoteAmount <= 0)
+            {
+                return BadRequest(new { message = "El monto de la nota de crédito debe ser mayor a cero." });
+            }
+
+            var resultMessage = await _invoiceService.AddCreditNoteAsync(
+                request.InvoiceId,
+                request.CreditNoteNumber,
+                request.CreditNoteAmount
+            );
+
+            if (resultMessage.Contains("exitosamente"))
+            {
+                return Ok(new { message = resultMessage });
+            }
+            else
+            {
+                return BadRequest(new { message = resultMessage });
+            }
+        }
+    }
+
+    /// <summary>
+    /// Modelo de solicitud para agregar una Nota de Crédito.
+    /// </summary>
+    public class NotaCreditoRequest
+    {
+        public int InvoiceId { get; set; }
+        public int CreditNoteNumber { get; set; }
+        public decimal CreditNoteAmount { get; set; }
     }
 }
+    
