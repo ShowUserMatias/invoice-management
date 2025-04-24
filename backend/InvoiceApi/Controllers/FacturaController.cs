@@ -1,5 +1,5 @@
 using InvoiceApi.Data;
-using InvoiceApi.Models;
+using InvoiceApi.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using InvoiceApi.Services;
@@ -72,15 +72,45 @@ namespace InvoiceApi.Controllers
                 query = query.Where(i => i.PaymentStatus.ToLower() == normalizedPaymentStatus);
             }
 
-            var results = await query.ToListAsync();
-
-            if (results.Count == 0)
+            var results = await query
+        .Select(i => new InvoiceDto
+        {
+            InvoiceId = i.InvoiceId,
+            InvoiceNumber = i.InvoiceNumber,
+            InvoiceDate = i.InvoiceDate,
+            TotalAmount = i.TotalAmount,
+            PaymentDueDate = i.PaymentDueDate,
+            PaymentStatus = i.PaymentStatus,
+            InvoiceStatus = i.InvoiceStatus,
+            Customer = new CustomerDto
             {
-                return NotFound(new { message = "No se encontraron facturas con los criterios especificados." });
+                CustomerRun = i.Customer.CustomerRun,
+                CustomerName = i.Customer.CustomerName,
+                CustomerEmail = i.Customer.CustomerEmail
+            },
+            InvoiceDetails = i.InvoiceDetails.Select(d => new InvoiceDetailDto
+            {
+                ProductName = d.ProductName,
+                UnitPrice = d.UnitPrice,
+                Quantity = d.Quantity,
+                Subtotal = d.Subtotal
+            }).ToList(),
+            InvoiceCreditNotes = i.InvoiceCreditNotes.Select(nc => new InvoiceCreditNoteDto
+            {
+                CreditNoteNumber = nc.CreditNoteNumber,
+                CreditNoteDate = nc.CreditNoteDate,
+                CreditNoteAmount = nc.CreditNoteAmount
+            }).ToList(),
+            InvoicePayment = i.InvoicePayment == null ? null : new InvoicePaymentDto
+            {
+                PaymentMethod = i.InvoicePayment.PaymentMethod,
+                PaymentDate = i.InvoicePayment.PaymentDate
             }
+        })
+        .ToListAsync();
 
-            return Ok(results);
-        }
+    return Ok(results);
+}
 
         /// <summary>
         /// Agregar una Nota de Crédito a una factura.
