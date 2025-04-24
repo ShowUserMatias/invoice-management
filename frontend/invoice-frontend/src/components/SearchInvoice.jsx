@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 
 const SearchInvoice = () => {
   const [invoiceNumber, setInvoiceNumber] = useState('');
@@ -65,7 +66,8 @@ const SearchInvoice = () => {
           <ul>
             {results.map((invoice) => (
               <li key={invoice.invoiceId}>
-                Factura #{invoice.invoiceNumber} - Estado: {invoice.invoiceStatus} - Pago: {invoice.paymentStatus}
+                Factura #{invoice.invoiceNumber} - Estado: {invoice.invoiceStatus} - Pago: {invoice.paymentStatus} {' '}
+                <Link to={`/factura/${invoice.invoiceId}`}>Ver Detalle</Link>
               </li>
             ))}
           </ul>        
