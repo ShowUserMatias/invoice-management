@@ -1,29 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import AddCreditNote from './AddCreditNote';
 
 const InvoiceDetails = () => {
-  const { id } = useParams();
+  const { invoiceId } = useParams();
+  console.log('ID recibido por useParams:', invoiceId);
   const [invoice, setInvoice] = useState(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const fetchInvoice = async () => {
+  
+    const fetchInvoiceDetail = useCallback(async () => {
       try {
-        const response = await axios.get('http://localhost:5192/api/Factura/buscar', {
-            params: { invoiceNumber: id }});
-        if (response.data.length > 0) {
-          setInvoice(response.data[0]);          
-        } else {
-          setError('Factura no encontrada.');
-        }
+        const response = await axios.get(`http://localhost:5192/api/Factura/${invoiceId}`);        
+          setInvoice(response.data);                  
+          setError('');        
       } catch (err) {
         setError('Error al cargar los detalles de la factura.');
       }
-    };
+    }, [invoiceId]);
 
-    fetchInvoice();
-  }, [id]);
+    useEffect(() => {  
+    fetchInvoiceDetail();
+  }, [fetchInvoiceDetail]);
 
   if (error) return <p style={{ color: 'red' }}>{error}</p>;
   if (!invoice) return <p>Cargando detalles de la factura...</p>;
@@ -60,6 +59,8 @@ const InvoiceDetails = () => {
       ) : (
         <p>No hay notas de crédito.</p>
       )}
+
+        <AddCreditNote invoiceId={invoice.invoiceId} onCreditNoteAdded={fetchInvoiceDetail} />
 
       <h3>Pago</h3>
       {invoice.invoicePayment.paymentDate ? (
