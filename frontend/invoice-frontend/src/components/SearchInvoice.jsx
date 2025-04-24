@@ -8,8 +8,18 @@ const SearchInvoice = () => {
   const [paymentStatus, setPaymentStatus] = useState('');
   const [results, setResults] = useState([]);
   const [error, setError] = useState('');
+  const [validationError, setValidationError] = useState('');
 
   const handleSearch = async () => {
+    if (!invoiceNumber && !invoiceStatus && !paymentStatus) {
+        setValidationError('Debe ingresar al menos un filtro para realizar la búsqueda.');
+        return;
+      }
+      if (invoiceNumber && invoiceNumber <= 0) {
+        setValidationError('El número de factura debe ser mayor a cero.');
+        return;
+      }
+      setValidationError('');
     try {
       const params = {};
       if (invoiceNumber) params.invoiceNumber = invoiceNumber;
@@ -19,8 +29,7 @@ const SearchInvoice = () => {
       const response = await axios.get('http://localhost:5192/api/Factura/buscar', { params });
       setResults(response.data);
       setError('');
-    } catch (err) {
-        console.error(err);
+    } catch (err) {        
         setError('No se pudo conectar con el servidor o hubo un error en la búsqueda.');
       setResults([]);
     }
@@ -57,12 +66,11 @@ const SearchInvoice = () => {
       </div>
       <button onClick={handleSearch}>Buscar</button>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-
-      {!error && results.length === 0 && <p>No se encontraron facturas.</p>}
+      {validationError && <p style={{ color: 'orange' }}>{validationError}</p>}
+      {error && <p style={{ color: 'red' }}>{error}</p>}      
 
       <div>
-        {results.length > 0 && (
+        {results.length > 0 ? (
           <ul>
             {results.map((invoice) => (
               <li key={invoice.invoiceId}>
@@ -70,7 +78,9 @@ const SearchInvoice = () => {
                 <Link to={`/factura/${invoice.invoiceId}`}>Ver Detalle</Link>
               </li>
             ))}
-          </ul>        
+          </ul>     
+        ) : (
+          <p>No se encontraron facturas.</p>   
         )}
       </div>
     </div>

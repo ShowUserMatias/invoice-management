@@ -1,12 +1,33 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
 const AddCreditNote = ({ invoiceId, onCreditNoteAdded }) => {
   const [creditNoteNumber, setCreditNoteNumber] = useState('');
   const [creditNoteAmount, setCreditNoteAmount] = useState('');
   const [message, setMessage] = useState('');
+  const [errors, setErrors] = useState({});
+
+  useEffect(() => {
+    setMessage('');
+  }, [creditNoteNumber, creditNoteAmount]);
+
+  const validate = () => {
+    const newErrors = {};
+    if (!creditNoteNumber || creditNoteNumber <= 0) {
+      newErrors.creditNoteNumber = 'Debe ingresar un número válido para la nota de crédito.';
+    }
+    if (!creditNoteAmount || creditNoteAmount <= 0) {
+      newErrors.creditNoteAmount = 'El monto debe ser mayor a cero.';
+    }
+    return newErrors;
+  };
 
   const handleAddCreditNote = async () => {
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
     try {
       const response = await axios.post('http://localhost:5192/api/Factura/agregar-nc', {
         invoiceId: invoiceId,
@@ -14,6 +35,7 @@ const AddCreditNote = ({ invoiceId, onCreditNoteAdded }) => {
         creditNoteAmount: parseFloat(creditNoteAmount)
       });
       setMessage(response.data.message);
+      setErrors({});
       setCreditNoteNumber('');
       setCreditNoteAmount('');
       if (onCreditNoteAdded) onCreditNoteAdded(); 
@@ -33,6 +55,7 @@ const AddCreditNote = ({ invoiceId, onCreditNoteAdded }) => {
           value={creditNoteNumber}
           onChange={(e) => setCreditNoteNumber(e.target.value)}
         />
+        {errors.creditNoteNumber && <p style={{ color: 'red' }}>{errors.creditNoteNumber}</p>}
       </div>
       <div>
         <label>Monto de Nota de Crédito:</label>
@@ -41,6 +64,7 @@ const AddCreditNote = ({ invoiceId, onCreditNoteAdded }) => {
           value={creditNoteAmount}
           onChange={(e) => setCreditNoteAmount(e.target.value)}
         />
+        {errors.creditNoteAmount && <p style={{ color: 'red' }}>{errors.creditNoteAmount}</p>}
       </div>
       <button onClick={handleAddCreditNote}>Agregar Nota de Crédito</button>
       {message && <p>{message}</p>}
