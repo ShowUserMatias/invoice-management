@@ -137,6 +137,60 @@ namespace InvoiceApi.Controllers
             {
                 return BadRequest(new { message = resultMessage });
             }
+
+        }
+            /// <summary>
+            /// Obtener detalles de una factura por su ID.
+            /// </summary>
+            [HttpGet("{invoiceId}")]
+            public async Task<IActionResult> ObtenerFacturaPorId(int invoiceId)
+            {
+                var invoice = await _context.Invoices
+                    .Include(i => i.Customer)
+                    .Include(i => i.InvoiceDetails)
+                    .Include(i => i.InvoiceCreditNotes)
+                    .Include(i => i.InvoicePayment)
+                    .FirstOrDefaultAsync(i => i.InvoiceId == invoiceId);
+
+                if (invoice == null)
+                    return NotFound(new { message = "Factura no encontrada." });
+
+                    var invoiceDto = new InvoiceDto
+            {
+                InvoiceId = invoice.InvoiceId,
+                InvoiceNumber = invoice.InvoiceNumber,
+                InvoiceDate = invoice.InvoiceDate,
+                TotalAmount = invoice.TotalAmount,
+                PaymentDueDate = invoice.PaymentDueDate,
+                PaymentStatus = invoice.PaymentStatus,
+                InvoiceStatus = invoice.InvoiceStatus,
+                Customer = new CustomerDto
+                {
+                    CustomerRun = invoice.Customer.CustomerRun,
+                    CustomerName = invoice.Customer.CustomerName,
+                    CustomerEmail = invoice.Customer.CustomerEmail
+                },
+                InvoiceDetails = invoice.InvoiceDetails.Select(d => new InvoiceDetailDto
+                {
+                    ProductName = d.ProductName,
+                    UnitPrice = d.UnitPrice,
+                    Quantity = d.Quantity,
+                    Subtotal = d.Subtotal
+                }).ToList(),
+                InvoiceCreditNotes = invoice.InvoiceCreditNotes.Select(nc => new InvoiceCreditNoteDto
+                {
+                    CreditNoteNumber = nc.CreditNoteNumber,
+                    CreditNoteDate = nc.CreditNoteDate,
+                    CreditNoteAmount = nc.CreditNoteAmount
+                }).ToList(),
+                InvoicePayment = invoice.InvoicePayment == null ? null : new InvoicePaymentDto
+                {
+                    PaymentMethod = invoice.InvoicePayment.PaymentMethod,
+                    PaymentDate = invoice.InvoicePayment.PaymentDate
+                }
+            };
+
+            return Ok(invoiceDto);
         }
     }
 
