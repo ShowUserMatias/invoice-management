@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import AddCreditNote from './AddCreditNote';
 
 const InvoiceDetails = () => {
@@ -12,7 +12,7 @@ const InvoiceDetails = () => {
   
     const fetchInvoiceDetail = useCallback(async () => {
       try {
-        const response = await axios.get(`http://localhost:5192/api/Factura/${invoiceId}`);        
+        const response = await api.get(`http://localhost:5192/api/Factura/${invoiceId}`);        
           setInvoice(response.data);                  
           setError('');        
       } catch (err) {

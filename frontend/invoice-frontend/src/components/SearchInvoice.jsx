@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { Link } from 'react-router-dom';
 
 const SearchInvoice = () => {
@@ -26,7 +26,7 @@ const SearchInvoice = () => {
       if (invoiceStatus) params.invoiceStatus = invoiceStatus;
       if (paymentStatus) params.paymentStatus = paymentStatus;
 
-      const response = await axios.get('http://localhost:5192/api/Factura/buscar', { params });
+      const response = await api.get('http://localhost:5192/api/Factura/buscar', { params });
       setResults(response.data);
       setError('');
     } catch (err) {        

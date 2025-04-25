@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 const AddCreditNote = ({ invoiceId, onCreditNoteAdded }) => {
   const [creditNoteNumber, setCreditNoteNumber] = useState('');
@@ -29,7 +29,7 @@ const AddCreditNote = ({ invoiceId, onCreditNoteAdded }) => {
       return;
     }
     try {
-      const response = await axios.post('http://localhost:5192/api/Factura/agregar-nc', {
+      const response = await api.post('http://localhost:5192/api/Factura/agregar-nc', {
         invoiceId: invoiceId,
         creditNoteNumber: parseInt(creditNoteNumber),
         creditNoteAmount: parseFloat(creditNoteAmount)

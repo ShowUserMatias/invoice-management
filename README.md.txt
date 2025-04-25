@@ -72,6 +72,30 @@ c. dotnet run
 4. Acceder a Swagger con una dirección como esta
 a. https://localhost:{puerto}/swagger/index.html (Reemplazar el puerto por el indicado)
 
+Autenticación
+
+El sistema utiliza JWT (JSON Web Tokens) para proteger los endpoints de la API
+Credenciales por defecto (Para pruebas):
+Usuario: admin
+Contraseña: 1234
+
+Obtener Token
+
+1.Levantar el backend (dotnet run)
+2.Accede a Swagger (Desde el localhost mencionado)
+3.Utiliza el endpoint POST /api/Auth/login enviando: 
+{
+  "username": "admin",
+  "password": "1234"
+}
+4. Copia el token recibido como respuesta
+5. En Swagger pincha el candado del endpoint e ingresa el token de la siguiente forma: Bearer {token}
+6. Luego probar los endpoints protegidos
+
+Login para Frontend
+
+También cuenta con un sistema de ingreso con las mismas credenciales, admin y 1234 respectivamente, para acceder a las funcionalidades desde la interfaz.
+
 Frontend
 1. Ir a carpeta frontend/invoice-frontend
 2. Instalar dependencias con:

@@ -3,9 +3,11 @@ using InvoiceApi.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using InvoiceApi.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace InvoiceApi.Controllers
 {
+    [Authorize]    
     [ApiController]
     [Route("api/[controller]")]
     public class FacturaController : ControllerBase
