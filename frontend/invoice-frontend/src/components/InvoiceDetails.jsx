@@ -24,50 +24,55 @@ const InvoiceDetails = () => {
     fetchInvoiceDetail();
   }, [fetchInvoiceDetail]);
 
-  if (error) return <p style={{ color: 'red' }}>{error}</p>;
-  if (!invoice) return <p>Cargando detalles de la factura...</p>;
+  if (error) return <p className="text-red-600 text-center mt-6">{error}</p>;
+  if (!invoice) return <p className="text-gray-500 text-center mt-6">Cargando detalles de la factura...</p>;
 
   return (
-    <div>
-      <h2>Detalle de Factura #{invoice.invoiceNumber}</h2>
+    <div className="max-w-3xl mx-auto bg-white shadow-md rounded-lg p-8 space-y-6">
+      <h2 className="text-2xl font-semibold text-gray-800 text-center">Detalle de Factura #{invoice.invoiceNumber}</h2>
+      <div className="space-y-2">
       <p><strong>Fecha:</strong> {invoice.invoiceDate}</p>
       <p><strong>Monto Total:</strong> {invoice.totalAmount}</p>
-      <p><strong>Estado de Factura:</strong> {invoice.invoiceStatus}</p>
-      <p><strong>Estado de Pago:</strong> {invoice.paymentStatus}</p>
-
-      <h3>Cliente</h3>
+      <p><strong>Estado de Factura:</strong> <span className="text-blue-700">{invoice.invoiceStatus}</span></p>
+      <p><strong>Estado de Pago:</strong> <span className="text-green-700">{invoice.paymentStatus}</span></p>
+      </div>
+      <div>
+      <h3 className="text-lg font-semibold text-gray-700 mb-2">Cliente</h3>
       <p>{invoice.customer.customerName} ({invoice.customer.customerRun}) - {invoice.customer.customerEmail}</p>
-
-      <h3>Productos</h3>
-      <ul>
+      </div>
+      <div>
+      <h3 className="text-lg font-semibold text-gray-700 mb-2">Productos</h3>
+      <ul className="space-y-2">
         {invoice.invoiceDetails.map((detail, index) => (
-          <li key={index}>
+          <li key={index} className="border border-gray-200 rounded p-3">
             {detail.productName} - Cantidad: {detail.quantity} - Precio Unitario: {detail.unitPrice} - Subtotal: {detail.subtotal}
           </li>
         ))}
       </ul>
-
-      <h3>Notas de Crédito</h3>
+      </div>
+      <div>
+      <h3 className="text-lg font-semibold text-gray-700 mb-2">Notas de Crédito</h3>
       {invoice.invoiceCreditNotes.length > 0 ? (
-        <ul>
+        <ul className="space-y-2">
           {invoice.invoiceCreditNotes.map((note, index) => (
-            <li key={index}>
+            <li key={index} className="border border-gray-200 rounded p-3">
               NC #{note.creditNoteNumber} - {note.creditNoteAmount} (Fecha: {note.creditNoteDate})
             </li>
           ))}
         </ul>
       ) : (
-        <p>No hay notas de crédito.</p>
+        <p className="text-gray-500">No hay notas de crédito.</p>
       )}
-
+    </div>
         <AddCreditNote invoiceId={invoice.invoiceId} onCreditNoteAdded={fetchInvoiceDetail} />
-
-      <h3>Pago</h3>
+      <div>
+      <h3 className="text-lg font-semibold text-gray-700 mb-2">Pago</h3>
       {invoice.invoicePayment.paymentDate ? (
         <p>Método: {invoice.invoicePayment.paymentMethod} - Fecha: {invoice.invoicePayment.paymentDate}</p>
       ) : (
-        <p>Pago pendiente.</p>
+        <p className="text-gray-500">Pago pendiente.</p>
       )}
+      </div>
     </div>
   );
 };
